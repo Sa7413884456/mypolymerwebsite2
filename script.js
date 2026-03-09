@@ -1,169 +1,218 @@
-// Mobile Menu Toggle
-const hamburger = document.querySelector('.hamburger');
-const navMenu = document.querySelector('.nav-menu');
+// ===== 3D PMMA Structure using Three.js =====
 
-hamburger.addEventListener('click', () => {
-    navMenu.classList.toggle('active');
-});
+// Load Three.js from CDN
+const script = document.createElement('script');
+script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+script.onload = function() {
+    initiate3DStructure();
+};
+document.head.appendChild(script);
 
-// Close menu when a link is clicked
-document.querySelectorAll('.nav-link').forEach(link => {
-    link.addEventListener('click', () => {
-        navMenu.classList.remove('active');
+let scene, camera, renderer, molecule, autoRotateEnabled = true;
+
+function initiate3DStructure() {
+    const container = document.getElementById('canvas-3d');
+    
+    if (!container) return;
+
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+
+    // Scene setup
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf5f5f5);
+
+    // Camera setup
+    camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+    camera.position.z = 15;
+
+    // Renderer setup
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(5, 10, 7);
+    scene.add(directionalLight);
+
+    // Create PMMA Polymer Chain
+    molecule = new THREE.Group();
+    createPMMAChain();
+    scene.add(molecule);
+
+    // Mouse controls
+    let isDragging = false;
+    let previousMousePosition = { x: 0, y: 0 };
+
+    container.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        previousMousePosition = { x: e.clientX, y: e.clientY };
     });
-});
 
-// Tab Switching
-function switchTab(tabName) {
-    // Hide all tab contents
-    const tabContents = document.querySelectorAll('.tab-content');
-    tabContents.forEach(tab => {
-        tab.classList.remove('active');
+    container.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            const deltaX = e.clientX - previousMousePosition.x;
+            const deltaY = e.clientY - previousMousePosition.y;
+
+            molecule.rotation.y += deltaX * 0.005;
+            molecule.rotation.x += deltaY * 0.005;
+
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        }
     });
 
-    // Remove active class from all buttons
-    const tabButtons = document.querySelectorAll('.tab-button');
-    tabButtons.forEach(button => {
-        button.classList.remove('active');
+    container.addEventListener('mouseup', () => {
+        isDragging = false;
     });
 
-    // Show selected tab
-    const selectedTab = document.getElementById(tabName);
-    if (selectedTab) {
-        selectedTab.classList.add('active');
+    container.addEventListener('mouseleave', () => {
+        isDragging = false;
+    });
+
+    // Zoom with scroll
+    container.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        camera.position.z += e.deltaY * 0.01;
+        camera.position.z = Math.max(5, Math.min(50, camera.position.z));
+    });
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        const newWidth = container.clientWidth;
+        const newHeight = container.clientHeight;
+        camera.aspect = newWidth / newHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(newWidth, newHeight);
+    });
+
+    // Animation loop
+    function animate() {
+        requestAnimationFrame(animate);
+
+        if (autoRotateEnabled) {
+            molecule.rotation.y += 0.003;
+            molecule.rotation.x += 0.001;
+        }
+
+        renderer.render(scene, camera);
     }
 
-    // Add active class to clicked button
-    event.target.classList.add('active');
+    animate();
 }
 
-// Smooth Scrolling Enhancement
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
-        }
-    });
-});
+function createPMMAChain() {
+    // Create 8 repeating units of PMMA
+    const unitCount = 8;
+    const spacing = 3;
 
-// Active Navigation Link Based on Scroll
-window.addEventListener('scroll', () => {
-    const sections = document.querySelectorAll('section');
-    const navLinks = document.querySelectorAll('.nav-link');
-
-    let current = '';
-    sections.forEach(section => {
-        const sectionTop = section.offsetTop;
-        const sectionHeight = section.clientHeight;
-        if (pageYOffset >= sectionTop - 200) {
-            current = section.getAttribute('id');
-        }
-    });
-
-    navLinks.forEach(link => {
-        link.classList.remove('active');
-        if (link.getAttribute('href').slice(1) === current) {
-            link.classList.add('active');
-        }
-    });
-});
-
-// Add scroll animation for elements
-const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
-};
-
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.style.opacity = '1';
-            entry.target.style.transform = 'translateY(0)';
-        }
-    });
-}, observerOptions);
-
-// Observe all cards and sections
-document.querySelectorAll('.card, .timeline-item, .application-card, .property-card').forEach(el => {
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(20px)';
-    el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-    observer.observe(el);
-});
-
-// Initialize first tab as active
-window.addEventListener('DOMContentLoaded', () => {
-    const firstTabContent = document.querySelector('.tab-content');
-    if (firstTabContent) {
-        firstTabContent.classList.add('active');
+    for (let i = 0; i < unitCount; i++) {
+        createMonomerUnit(i * spacing, 0, 0);
     }
+
+    // Connect units with bonds
+    for (let i = 0; i < unitCount - 1; i++) {
+        const pos1 = new THREE.Vector3(i * spacing + 1.2, 0, 0);
+        const pos2 = new THREE.Vector3((i + 1) * spacing, 0, 0);
+        createBond(pos1, pos2, 0x666666, 0.15);
+    }
+}
+
+function createMonomerUnit(x, y, z) {
+    // Carbon backbone (black)
+    const carbonColor = 0x333333;
+    createAtom(x, y, z, 0.5, carbonColor);
+    createAtom(x + 1.2, y, z, 0.5, carbonColor);
+
+    // Create bond between carbons
+    createBond(new THREE.Vector3(x, y, z), new THREE.Vector3(x + 1.2, y, z), carbonColor, 0.2);
+
+    // Oxygen (red) - ester group
+    const oxygenColor = 0xff0000;
+    createAtom(x + 1.2, y + 1.2, z, 0.4, oxygenColor);
+    createBond(new THREE.Vector3(x + 1.2, y, z), new THREE.Vector3(x + 1.2, y + 1.2, z), 0x666666, 0.15);
+
+    // Methyl group (green) - substituent
+    const methylColor = 0x2ecc71;
+    createAtom(x + 0.6, y + 1, z, 0.35, methylColor);
+    createBond(new THREE.Vector3(x, y, z), new THREE.Vector3(x + 0.6, y + 1, z), 0x666666, 0.15);
+
+    // Hydrogen atoms (light blue) - represented as small spheres
+    const hydrogenColor = 0x00d4ff;
     
-    const firstTabButton = document.querySelector('.tab-button');
-    if (firstTabButton) {
-        firstTabButton.classList.add('active');
-    }
-});
+    // Hydrogens on first carbon
+    createAtom(x - 0.4, y + 0.6, z + 0.5, 0.25, hydrogenColor);
+    createAtom(x - 0.4, y - 0.6, z - 0.5, 0.25, hydrogenColor);
 
-// Add CSS class to nav-link when active
-const style = document.createElement('style');
-style.textContent = `
-    .nav-link.active {
-        color: var(--primary-color);
-        border-bottom: 2px solid var(--primary-color);
-        padding-bottom: 5px;
-    }
-`;
-document.head.appendChild(style);
+    // Hydrogens on second carbon
+    createAtom(x + 1.6, y + 0.5, z - 0.6, 0.25, hydrogenColor);
+    createAtom(x + 1.6, y - 0.5, z + 0.6, 0.25, hydrogenColor);
 
-// Scroll to top button functionality
-const scrollToTopBtn = document.createElement('button');
-scrollToTopBtn.innerHTML = '↑ Top';
-scrollToTopBtn.className = 'scroll-to-top';
-scrollToTopBtn.style.cssText = `
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    padding: 10px 20px;
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    color: var(--dark-bg);
-    border: none;
-    border-radius: 50px;
-    cursor: pointer;
-    display: none;
-    z-index: 999;
-    font-weight: bold;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0, 212, 255, 0.4);
-`;
+    // Add labels (using canvas texture for text)
+    addLabel(x, y, z, 'C');
+    addLabel(x + 1.2, y, z, 'C');
+}
 
-document.body.appendChild(scrollToTopBtn);
-
-window.addEventListener('scroll', () => {
-    if (window.pageYOffset > 300) {
-        scrollToTopBtn.style.display = 'block';
-    } else {
-        scrollToTopBtn.style.display = 'none';
-    }
-});
-
-scrollToTopBtn.addEventListener('click', () => {
-    window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
+function createAtom(x, y, z, size, color) {
+    const geometry = new THREE.SphereGeometry(size, 32, 32);
+    const material = new THREE.MeshPhongMaterial({ 
+        color: color,
+        shininess: 100,
+        emissive: color,
+        emissiveIntensity: 0.2
     });
-});
+    const atom = new THREE.Mesh(geometry, material);
+    atom.position.set(x, y, z);
+    molecule.add(atom);
+}
 
-scrollToTopBtn.addEventListener('mouseover', () => {
-    scrollToTopBtn.style.transform = 'translateY(-5px)';
-    scrollToTopBtn.style.boxShadow = '0 8px 20px rgba(0, 212, 255, 0.6)';
-});
+function createBond(pos1, pos2, color, thickness) {
+    const geometry = new THREE.CylinderGeometry(thickness, thickness, pos1.distanceTo(pos2), 16);
+    const material = new THREE.MeshPhongMaterial({ color: color });
+    const bond = new THREE.Mesh(geometry, material);
 
-scrollToTopBtn.addEventListener('mouseout', () => {
-    scrollToTopBtn.style.transform = 'translateY(0)';
-    scrollToTopBtn.style.boxShadow = '0 4px 12px rgba(0, 212, 255, 0.4)';
-});
+    const midpoint = new THREE.Vector3().addVectors(pos1, pos2).multiplyScalar(0.5);
+    bond.position.copy(midpoint);
+
+    const direction = new THREE.Vector3().subVectors(pos2, pos1).normalize();
+    bond.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+
+    molecule.add(bond);
+}
+
+function addLabel(x, y, z, text) {
+    // Create canvas texture for text
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const context = canvas.getContext('2d');
+
+    context.fillStyle = '#333333';
+    context.font = 'Bold 120px Arial';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(text, 128, 128);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const geometry = new THREE.PlaneGeometry(1, 1);
+    const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+    const label = new THREE.Mesh(geometry, material);
+    label.position.set(x, y - 1.5, z);
+    label.lookAt(camera.position);
+
+    molecule.add(label);
+}
+
+function toggleRotation() {
+    autoRotateEnabled = !autoRotateEnabled;
+    const btn = document.querySelector('.toggle-rotation-btn');
+    if (autoRotateEnabled) {
+        btn.textContent = 'Toggle Auto-Rotate';
+    } else {
+        btn.textContent = 'Start Auto-Rotate';
+    }
+}

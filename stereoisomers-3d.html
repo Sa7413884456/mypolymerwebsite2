@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PMMA Stereoisomers - 3D Visualization</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #00d4ff;
+            --secondary-color: #00ff88;
+            --accent-color: #ff00ff;
+            --dark-bg: #0a0e27;
+            --light-bg: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--dark-bg) 0%, #1a1f3a 100%);
+            color: white;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(10, 14, 39, 0.95);
+            padding: 40px 20px;
+            text-align: center;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #b0b0b0;
+            font-size: 1.1rem;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* 3D Canvas Grid */
+        .canvas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .canvas-wrapper {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            overflow: hidden;
+            border: 2px solid rgba(0, 212, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .canvas-wrapper:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+        }
+
+        .canvas-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            padding: 20px;
+            text-align: center;
+            color: var(--dark-bg);
+        }
+
+        .canvas-header h2 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+
+        .canvas-header p {
+            font-size: 0.95rem;
+            opacity: 0.9;
+        }
+
+        .canvas-3d {
+            width: 100%;
+            height: 400px;
+            position: relative;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+        }
+
+        .controls {
+            padding: 20px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.3);
+            border-top: 1px solid rgba(0, 212, 255, 0.1);
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: var(--dark-bg);
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin: 5px;
+            font-size: 0.9rem;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .control-btn:active {
+            transform: translateY(-1px);
+        }
+
+        /* Information Section */
+        .info-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 40px;
+            border: 2px solid rgba(0, 212, 255, 0.2);
+            margin-bottom: 40px;
+            backdrop-filter: blur(10px);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .info-card {
+            background: rgba(0, 212, 255, 0.05);
+            padding: 25px;
+            border-radius: 10px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .info-card.atactic {
+            border-left-color: var(--secondary-color);
+        }
+
+        .info-card.syndio {
+            border-left-color: var(--accent-color);
+        }
+
+        .info-card h3 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .info-card.atactic h3 {
+            color: var(--secondary-color);
+        }
+
+        .info-card.syndio h3 {
+            color: var(--accent-color);
+        }
+
+        .info-card p {
+            color: #b0b0b0;
+            line-height: 1.8;
+            margin-bottom: 12px;
+        }
+
+        .property-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+            color: #a0a0a0;
+        }
+
+        .property-item strong {
+            color: var(--primary-color);
+        }
+
+        .property-item.atactic strong {
+            color: var(--secondary-color);
+        }
+
+        .property-item.syndio strong {
+            color: var(--accent-color);
+        }
+
+        .property-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Legend */
+        .legend {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 40px;
+            border: 2px solid rgba(0, 212, 255, 0.2);
+        }
+
+        .legend h2 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .legend-color {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .legend-text h4 {
+            margin-bottom: 5px;
+        }
+
+        .legend-text p {
+            color: #a0a0a0;
+            font-size: 0.9rem;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: #b0b0b0;
+            border-top: 1px solid rgba(0, 212, 255, 0.1);
+            margin-top: 60px;
+        }
+
+        .footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .footer a:hover {
+            color: var(--secondary-color);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .canvas-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .canvas-3d {
+                height: 350px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .canvas-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .canvas-3d {
+                height: 300px;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .info-section,
+            .legend {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>PMMA Stereoisomers - 3D Visualization</h1>
+        <p>Interactive 3D models of Isotactic, Atactic, and Syndiotactic PMMA structures</p>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- 3D Canvas Grid -->
+        <div class="canvas-grid">
+            <!-- Isotactic -->
+            <div class="canvas-wrapper">
+                <div class="canvas-header">
+                    <h2>Isotactic PMMA</h2>
+                    <p>Ordered configuration</p>
+                </div>
+                <div id="canvas-isotactic" class="canvas-3d"></div>
+                <div class="controls">
+                    <button class="control-btn" onclick="toggleRotation('isotactic')">Auto-Rotate</button>
+                    <button class="control-btn" onclick="resetView('isotactic')">Reset View</button>
+                </div>
+            </div>
+
+            <!-- Atactic -->
+            <div class="canvas-wrapper">
+                <div class="canvas-header" style="background: linear-gradient(135deg, var(--secondary-color), var(--accent-color));">
+                    <h2>Atactic PMMA</h2>
+                    <p>Random configuration</p>
+                </div>
+                <div id="canvas-atactic" class="canvas-3d"></div>
+                <div class="controls">
+                    <button class="control-btn" onclick="toggleRotation('atactic')">Auto-Rotate</button>
+                    <button class="control-btn" onclick="resetView('atactic')">Reset View</button>
+                </div>
+            </div>
+
+            <!-- Syndiotactic -->
+            <div class="canvas-wrapper">
+                <div class="canvas-header" style="background: linear-gradient(135deg, var(--accent-color), #ff6b6b);">
+                    <h2>Syndiotactic PMMA</h2>
+                    <p>Alternating configuration</p>
+                </div>
+                <div id="canvas-syndiotactic" class="canvas-3d"></div>
+                <div class="controls">
+                    <button class="control-btn" onclick="toggleRotation('syndiotactic')">Auto-Rotate</button>
+                    <button class="control-btn" onclick="resetView('syndiotactic')">Reset View</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Information Section -->
+        <div class="info-section">
+            <h2 style="color: var(--primary-color); font-size: 2rem; margin-bottom: 20px;">Understanding PMMA Stereoisomers</h2>
+            
+            <div class="info-grid">
+                <!-- Isotactic Info -->
+                <div class="info-card">
+                    <h3>🔷 Isotactic PMMA</h3>
+                    <p><strong>Definition:</strong> All methyl ester groups (-COOCH₃) and methyl groups (-CH₃) are on the same side of the polymer backbone.</p>
+                    
+                    <div class="property-item">
+                        <strong>Tacticity:</strong> <span>Regular (R,R,R...)</span>
+                    </div>
+                    <div class="property-item">
+                        <strong>Crystallinity:</strong> <span>Semi-crystalline</span>
+                    </div>
+                    <div class="property-item">
+                        <strong>Density:</strong> <span>1.23-1.26 g/cm³</span>
+                    </div>
+                    <div class="property-item">
+                        <strong>Tg (°C):</strong> <span>~120</span>
+                    </div>
+                    <div class="property-item">
+                        <strong>Melting Point:</strong> <span>~200°C</span>
+                    </div>
+                    <div class="property-item">
+                        <strong>Hardness:</strong> <span>High</span>
+                    </div>
+                    <div class="property-item">
+                        <strong>Applications:</strong> <span>High-end optical, injection molding</span>
+                    </div>
+                </div>
+
+                <!-- Atactic Info -->
+                <div class="info-card atactic">
+                    <h3>🟢 Atactic PMMA</h3>
+                    <p><strong>Definition:</strong> Methyl ester and methyl groups are randomly distributed on both sides of the polymer backbone.</p>
+                    
+                    <div class="property-item atactic">
+                        <strong>Tacticity:</strong> <span>Random (R,S,R,S...)</span>
+                    </div>
+                    <div class="property-item atactic">
+                        <strong>Crystallinity:</strong> <span>Amorphous</span>
+                    </div>
+                    <div class="property-item atactic">
+                        <strong>Density:</strong> <span>1.18-1.20 g/cm³</span>
+                    </div>
+                    <div class="property-item atactic">
+                        <strong>Tg (°C):</strong> <span>~105</span>
+                    </div>
+                    <div class="property-item atactic">
+                        <strong>Melting Point:</strong> <span>~160°C</span>
+                    </div>
+                    <div class="property-item atactic">
+                        <strong>Hardness:</strong> <span>Medium</span>
+                    </div>
+                    <div class="property-item atactic">
+                        <strong>Applications:</strong> <span>Most common, general purpose acrylic</span>
+                    </div>
+                </div>
+
+                <!-- Syndiotactic Info -->
+                <div class="info-card syndio">
+                    <h3>🔶 Syndiotactic PMMA</h3>
+                    <p><strong>Definition:</strong> Methyl ester and methyl groups alternate regularly on opposite sides of the polymer backbone.</p>
+                    
+                    <div class="property-item syndio">
+                        <strong>Tacticity:</strong> <span>Alternating (R,S,R,S...)</span>
+                    </div>
+                    <div class="property-item syndio">
+                        <strong>Crystallinity:</strong> <span>Semi-crystalline</span>
+                    </div>
+                    <div class="property-item syndio">
+                        <strong>Density:</strong> <span>1.24-1.27 g/cm³</span>
+                    </div>
+                    <div class="property-item syndio">
+                        <strong>Tg (°C):</strong> <span>~115</span>
+                    </div>
+                    <div class="property-item syndio">
+                        <strong>Melting Point:</strong> <span>~195°C</span>
+                    </div>
+                    <div class="property-item syndio">
+                        <strong>Hardness:</strong> <span>High</span>
+                    </div>
+                    <div class="property-item syndio">
+                        <strong>Applications:</strong> <span>Specialty polymers, high-performance</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <h2>Atom Legend</h2>
+            <div class="legend-grid">
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #333333;"></div>
+                    <div class="legend-text">
+                        <h4>Carbon (C)</h4>
+                        <p>Backbone atoms</p>
+                    </div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ff0000;"></div>
+                    <div class="legend-text">
+                        <h4>Oxygen (O)</h4>
+                        <p>Ester groups</p>
+                    </div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #2ecc71;"></div>
+                    <div class="legend-text">
+                        <h4>Methyl (CH₃)</h4>
+                        <p>Substituents</p>
+                    </div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #00d4ff;"></div>
+                    <div class="legend-text">
+                        <h4>Hydrogen (H)</h4>
+                        <p>Terminal atoms</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Back Button -->
+        <div style="text-align: center; margin: 40px 0;">
+            <a href="index.html" style="color: var(--primary-color); text-decoration: none; font-size: 1.1rem; padding: 12px 30px; border: 2px solid var(--primary-color); border-radius: 25px; display: inline-block; transition: all 0.3s;">
+                ← Back to Main Website
+            </a>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>&copy; 2026 PMMA Chemistry Project | 3D Stereoisomers Visualization</p>
+        <p>Created for educational purposes | <a href="index.html">Main Site</a></p>
+    </div>
+
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- 3D Visualization Script -->
+    <script src="stereoisomers-3d.js"></script>
+</body>
+</html>
